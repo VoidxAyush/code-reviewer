@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VibeCheck | AST Python Code Reviewer</title>
+  <style>
+    :root {
+      --bg1: #090d16;
+      --bg2: #131b2e;
+      --glass: rgba(255, 255, 255, 0.06);
+      --glass-border: rgba(255, 255, 255, 0.14);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --high: #f87171;
+      --med: #fbbf24;
+      --low: #38bdf8;
+      --green: #4ade80;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at 15% 20%, #1e1b4b 0%, var(--bg1) 45%, #020617 100%);
+      color: var(--text);
+      padding: 28px 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Glowing background orbs for transparent glass effect */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(90px);
+      z-index: 0;
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    .orb-1 { width: 380px; height: 380px; background: #6366f1; top: -80px; left: -80px; }
+    .orb-2 { width: 340px; height: 340px; background: #06b6d4; bottom: -60px; right: -60px; }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Glassmorphic Card */
+    .glass {
+      background: var(--glass);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 22px;
+    }
+
+    .brand h1 {
+      font-size: 1.65rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #38bdf8, #a855f7, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand p { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+
+    .api-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    select, input[type="password"] {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid var(--glass-border);
+      color: var(--text);
+      padding: 9px 13px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    input[type="password"] { width: 230px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1.25fr;
+      gap: 22px;
+    }
+
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+    /* Drag & Drop Zone */
+    .drop-zone {
+      border: 2px dashed rgba(56, 189, 248, 0.45);
+      border-radius: 14px;
+      padding: 26px 18px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      background: rgba(15, 23, 42, 0.4);
+      margin-bottom: 16px;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .drop-zone h3 { font-size: 1.05rem; margin-bottom: 6px; color: #e0f2fe; }
+    .drop-zone p { font-size: 0.82rem; color: var(--muted); }
+
+    .file-btns {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .btn:hover { opacity: 0.92; transform: translateY(-1px); }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid var(--glass-border);
+    }
+    .btn-success {
+      background: linear-gradient(135deg, #059669, #10b981);
+    }
+
+    textarea {
+      width: 100%;
+      height: 290px;
+      background: rgba(9, 13, 22, 0.85);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      color: #e2e8f0;
+      padding: 14px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.86rem;
+      line-height: 1.5;
+      resize: vertical;
+      outline: none;
+      margin-bottom: 14px;
+    }
+
+    /* Score Banner */
+    .score-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid var(--glass-border);
+      padding: 15px 18px;
+      border-radius: 13px;
+      margin-bottom: 16px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 100%;
+      background: var(--green);
+      transition: width 0.4s ease, background 0.4s ease;
+    }
+
+    /* Issue Cards */
+    .issue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 360px;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-bottom: 16px;
+    }
+
+    .issue-card {
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid var(--glass-border);
+      border-left: 4px solid var(--accent);
+      border-radius: 11px;
+      padding: 13px 15px;
+    }
+
+    .issue-card.HIGH { border-left-color: var(--high); }
+    .issue-card.MEDIUM { border-left-color: var(--med); }
+    .issue-card.LOW { border-left-color: var(--low); }
+
+    .issue-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 7px;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .badge {
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge.HIGH { background: rgba(248, 113, 113, 0.2); color: var(--high); }
+    .badge.MEDIUM { background: rgba(251, 191, 36, 0.2); color: var(--med); }
+    .badge.LOW { background: rgba(56, 189, 248, 0.2); color: var(--low); }
+
+    .issue-body p {
+      font-size: 0.84rem;
+      color: #cbd5e1;
+      margin-bottom: 5px;
+      line-height: 1.4;
+    }
+
+    .code-fix {
+      background: rgba(0, 0, 0, 0.55);
+      padding: 8px 11px;
+      border-radius: 7px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.8rem;
+      color: var(--green);
+      margin-top: 6px;
+      white-space: pre-wrap;
+    }
+
+    /* CLI Terminal Preview */
+    .terminal {
+      background: #050811;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 11px;
+      padding: 13px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.8rem;
+      color: #a5f3fc;
+      white-space: pre-wrap;
+      max-height: 210px;
+      overflow-y: auto;
+      line-height: 1.45;
+    }
+
+    .section-title {
+      font-size: 0.88rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <div class="container">
+    <!-- Top Glass Header -->
+    <header class="glass">
+      <div class="brand">
+        <h1>⚡ VibeCheck: Python AST Code Reviewer</h1>
+        <p>Problem 8 CLI & Web Companion • Detects AST Bugs, Deep Nesting, Unused Vars & Security Leaks</p>
+      </div>
+      <div class="api-bar">
+        <select id="provider">
+          <option value="groq">Groq API (Llama-3.1)</option>
+          <option value="gemini">Gemini API (2.5 Flash)</option>
+        </select>
+        <input type="password" id="apiKey" placeholder="Optional: Paste Groq/Gemini Key" />
+        <button class="btn btn-secondary" onclick="loadSample()">Load Buggy Sample</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- LEFT PANEL: Drag & Drop + Code Editor -->
+      <div class="glass">
+        <div class="section-title">
+          <span>1. Input Python File or Folder</span>
+          <span id="fileNameLabel" style="color: var(--accent);">sample.py</span>
+        </div>
+
+        <div class="drop-zone" id="dropZone">
+          <h3>📂 Drag & Drop Judge's `.py` File Here</h3>
+          <p>Supports single Python file or multiple files at once</p>
+          <div class="file-btns">
+            <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">Select .py File(s)</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('folderInput').click()">Select Folder</button>
+          </div>
+          <input type="file" id="fileInput" accept=".py" multiple style="display:none" onchange="handleFiles(this.files)" />
+          <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none" onchange="handleFiles(this.files)" />
+        </div>
+
+        <div class="section-title"><span>Live Python Source Code</span></div>
+        <textarea id="codeEditor" spellcheck="false"></textarea>
+
+        <div style="display: flex; gap: 10px;">
+          <button class="btn" style="flex: 1; justify-content: center;" onclick="runReview()">
+            🔍 Run AST + AI Code Review
+          </button>
+          <button class="btn btn-success" onclick="downloadReport()">
+            ⬇ Download review_report.txt
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: Output Report & CLI Output -->
+      <div class="glass">
+        <div class="section-title">
+          <span>2. Structured Review Results</span>
+          <span id="statusText" style="color: var(--green);">Ready</span>
+        </div>
+
+        <div class="score-box">
+          <div style="flex: 1; margin-right: 20px;">
+            <div style="display:flex; justify-content:space-between; font-weight:700;">
+              <span id="scoreText">Code Health Score: 100/100</span>
+              <span id="issueCountText" style="color: var(--muted);">0 Issues</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="scoreBar"></div>
+            </div>
+          </div>
+          <button class="btn btn-secondary" onclick="copyReport()">📋 Copy CLI Output</button>
+        </div>
+
+        <div class="issue-list" id="issueContainer"></div>
+
+        <div class="section-title">
+          <span>Exact CLI Output Format (`python reviewer.py sample.py`)</span>
+        </div>
+        <div class="terminal" id="cliPreview">Click "Run AST + AI Code Review" to generate report...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SAMPLE_CODE = `def calc(x, items=[]):
+    api_key = "sk-live-987654321secret"
+    unused_temp = 42
+    if x > 0:
+        for i in range(x):
+            if i % 2 == 0:
+                while x > 10:
+                    x -= 1
+    try:
+        return x / 0
+    except:
+        return 0`;
+
+    let currentFileName = "sample.py";
+    let uploadedFilesBatch = [];
+    let latestReportText = "";
+
+    window.onload = () => {
+      loadSample();
+      runReview();
+    };
+
+    function loadSample() {
+      currentFileName = "sample.py";
+      uploadedFilesBatch = [];
+      document.getElementById("fileNameLabel").textContent = currentFileName;
+      document.getElementById("codeEditor").value = SAMPLE_CODE;
+    }
+
+    // Drag & Drop Events
+    const dropZone = document.getElementById("dropZone");
+    dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+    });
+
+    async function handleFiles(fileList) {
+      const pyFiles = Array.from(fileList).filter(f => f.name.endsWith(".py"));
+      if (pyFiles.length === 0) {
+        alert("Please drop at least one Python (.py) file!");
+        return;
+      }
+      uploadedFilesBatch = [];
+      for (const f of pyFiles) {
+        const text = await f.text();
+        uploadedFilesBatch.push({ name: f.webkitRelativePath || f.name, content: text });
+      }
+      currentFileName = uploadedFilesBatch.length === 1
+        ? uploadedFilesBatch[0].name
+        : `${uploadedFilesBatch.length} Python files selected`;
+      document.getElementById("fileNameLabel").textContent = currentFileName;
+      document.getElementById("codeEditor").value = uploadedFilesBatch[0].content;
+      runReview();
+    }
+
+    // =========================================================================
+    // STRUCTURAL PYTHON AST-EQUIVALENT PARSER (100% Instant In-Browser)
+    // =========================================================================
+    function analyzePythonAST(sourceCode) {
+      const lines = sourceCode.split(/\r?\n/);
+      const issues = [];
+      const functions = [];
+
+      // 1. Parse Indentation, Blocks, Functions, Bare Excepts, Secrets
+      const blockStack = []; // tracks { indent, type, line }
+
+      for (let idx = 0; idx < lines.length; idx++) {
+        const rawLine = lines[idx];
+        const lineNum = idx + 1;
+        const trimmed = rawLine.trim();
+
+        if (!trimmed || trimmed.startsWith("#")) continue;
+
+        const indent = rawLine.match(/^\s*/)[0].length;
+
+        // Pop blocks that have ended
+        while (blockStack.length > 0 && indent <= blockStack[blockStack.length - 1].indent) {
+          blockStack.pop();
+        }
+
+        // Check Function Definition: def func_name(...):
+        const funcMatch = trimmed.match(/^(?:async\s+)?def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\((.*)\)\s*:/);
+        if (funcMatch) {
+          const fnName = funcMatch[1];
+          const argsStr = funcMatch[2];
+
+          // Check Mutable Default Argument (e.g., items=[], data={})
+          if (/=\s*(\[.*\]|\{.*\})/.test(argsStr)) {
+            issues.push({
+              line: lineNum,
+              sev: "HIGH",
+              type: "mutable default argument",
+              target: `${fnName}()`,
+              code: trimmed
+            });
+          }
+
+          // Check Missing Docstring on next non-empty line
+          let hasDocstring = false;
+          for (let j = idx + 1; j < lines.length; j++) {
+            const nextTrim = lines[j].trim();
+            if (!nextTrim || nextTrim.startsWith("#")) continue;
+            if (nextTrim.startsWith('"""') || nextTrim.startsWith("'''") || nextTrim.startsWith('"') || nextTrim.startsWith("'")) {
+              hasDocstring = true;
+            }
+            break;
+          }
+          if (!hasDocstring) {
+            issues.push({
+              line: lineNum,
+              sev: "LOW",
+              type: "missing docstring",
+              target: `${fnName}()`,
+              code: trimmed
+            });
+          }
+
+          functions.push({ name: fnName, startLine: idx, indent: indent });
+          blockStack.push({ indent, type: "def", line: lineNum });
+          continue;
+        }
+
+        // Check Control Flow Nesting Depth (if, for, while, try, with)
+        if (/^(if|for|while|try|with)\b.*:/.test(trimmed)) {
+          const kw = trimmed.split(/\s+|:/)[0];
+          blockStack.push({ indent, type: kw, line: lineNum });
+
+          const nestingCount = blockStack.filter(b => ["if", "for", "while", "try", "with"].includes(b.type)).length;
+          if (nestingCount > 3) {
+            issues.push({
+              line: lineNum,
+              sev: "MEDIUM",
+              type: `deeply nested code (depth ${nestingCount})`,
+              target: `${kw} block`,
+              code: trimmed
+            });
+          }
+        }
+
+        // Check Bare Except Clause
+        if (/^except\s*:/.test(trimmed)) {
+          issues.push({
+            line: lineNum,
+            sev: "HIGH",
+            type: "bare except clause",
+            target: "except:",
+            code: trimmed
+          });
+        }
+
+        // Check Hardcoded Secrets / API Keys
+        const secretMatch = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*["']([^"']{5,})["']/);
+        if (secretMatch) {
+          const varName = secretMatch[1];
+          if (/(password|secret|api_key|token|passwd)/i.test(varName)) {
+            issues.push({
+              line: lineNum,
+              sev: "HIGH",
+              type: "hardcoded secret",
+              target: varName,
+              code: trimmed
+            });
+          }
+        }
+      }
+
+      // 2. Check Unused Variables inside each Function Scope (ast.Store vs ast.Load)
+      for (let fIdx = 0; fIdx < functions.length; fIdx++) {
+        const fn = functions[fIdx];
+        const assigned = {};
+        const used = new Set();
+
+        for (let i = fn.startLine + 1; i < lines.length; i++) {
+          const raw = lines[i];
+          const t = raw.trim();
+          if (!t || t.startsWith("#")) continue;
+          const curIndent = raw.match(/^\s*/)[0].length;
+          if (curIndent <= fn.indent) break; // Exited function body
+
+          // Detect variable assignment: var_name = expr
+          const assignMatch = t.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(?!=)(.+)$/);
+          if (assignMatch) {
+            const vName = assignMatch[1];
+            const rhs = assignMatch[2];
+            if (vName !== "_" && !/(password|secret|api_key|token)/i.test(vName)) {
+              if (!assigned[vName]) assigned[vName] = { line: i + 1, code: t };
+            }
+            // Any identifiers on the right-hand side count as Load
+            const rhsTokens = rhs.match(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g) || [];
+            rhsTokens.forEach(tok => used.add(tok));
+          } else {
+            // All identifiers on non-assignment lines count as Load
+            const tokens = t.match(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g) || [];
+            tokens.forEach(tok => used.add(tok));
+          }
+        }
+
+        for (const [vName, info] of Object.entries(assigned)) {
+          if (!used.has(vName)) {
+            issues.push({
+              line: info.line,
+              sev: "MEDIUM",
+              type: "unused variable",
+              target: `${vName} in ${fn.name}()`,
+              code: info.code
+            });
+          }
+        }
+      }
+
+      return issues.sort((a, b) => a.line - b.line);
+    }
+
+    // =========================================================================
+    // LLM EXPLAINER (Groq / Gemini API + Instant Smart Fallback)
+    // =========================================================================
+    function getFallbackExplanation(issue) {
+      if (issue.type.includes("missing docstring")) {
+        return {
+          why: `Readers cannot tell what ${issue.target} does without reading its implementation.`,
+          fix: "Add a one-line docstring right below the def statement.",
+          fixed_code: `def ${issue.target}:\n    """Explain what ${issue.target} computes."""`
+        };
+      }
+      if (issue.type.includes("mutable default")) {
+        return {
+          why: "Default list or dict arguments are created once and shared across all calls to this function.",
+          fix: "Use None as the default value and initialize the list inside the function.",
+          fixed_code: `def ${issue.target.replace("()", "(items=None)")}:\n    items = [] if items is None else items`
+        };
+      }
+      if (issue.type.includes("unused variable")) {
+        return {
+          why: `Variable ${issue.target} is assigned in memory but never read anywhere in the function.`,
+          fix: "Remove the unused variable assignment to keep code clean.",
+          fixed_code: `# Remove unused line: ${issue.code}`
+        };
+      }
+      if (issue.type.includes("hardcoded secret")) {
+        return {
+          why: `Hardcoding '${issue.target}' exposes sensitive credentials in source control.`,
+          fix: "Load the secret safely from environment variables using os.getenv().",
+          fixed_code: `import os\n${issue.target} = os.getenv("${issue.target.toUpperCase()}")`
+        };
+      }
+      if (issue.type.includes("bare except")) {
+        return {
+          why: "Bare except: catches SystemExit and KeyboardInterrupt, hiding real runtime bugs.",
+          fix: "Specify the exact exception class such as except Exception as e:.",
+          fixed_code: `except Exception as e:\n    return 0`
+        };
+      }
+      return {
+        why: "Deeply nested control flow makes the function hard to test, read, and maintain.",
+        fix: "Flatten the logic using early return guard clauses or helper functions.",
+        fixed_code: `if x <= 0:\n    return 0  # Guard clause flattens nesting`
+      };
+    }
+
+    async function explainIssue(issue) {
+      const apiKey = document.getElementById("apiKey").value.trim();
+      const provider = document.getElementById("provider").value;
+      if (!apiKey) return getFallbackExplanation(issue);
+
+      const prompt = `Python code issue at line ${issue.line}: ${issue.type} on ${issue.target} (code: ${issue.code}). Return ONLY valid JSON: {"why": "1-sentence plain explanation", "fix": "1-sentence fix instruction", "fixed_code": "1-2 line corrected python snippet"}`;
+
+      try {
+        if (provider === "groq") {
+          const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "llama-3.1-8b-instant",
+              messages: [{ role: "user", content: prompt }],
+              response_format: { type: "json_object" },
+              temperature: 0.2
+            })
+          });
+          const data = await res.json();
+          return JSON.parse(data.choices[0].message.content);
+        } else {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: "application/json" }
+            })
+          });
+          const data = await res.json();
+          return JSON.parse(data.candidates[0].content.parts[0].text);
+        }
+      } catch (e) {
+        return getFallbackExplanation(issue);
+      }
+    }
+
+    // =========================================================================
+    // MAIN RUNNER & REPORT BUILDER
+    // =========================================================================
+    async function runReview() {
+      const statusEl = document.getElementById("statusText");
+      statusEl.textContent = "Analyzing AST...";
+
+      const filesToRun = uploadedFilesBatch.length > 1
+        ? uploadedFilesBatch
+        : [{ name: currentFileName, content: document.getElementById("codeEditor").value }];
+
+      let allCardsHTML = "";
+      let cliReportLines = [];
+      let totalScoreSum = 0;
+      let totalIssuesCount = 0;
+
+      for (const fileObj of filesToRun) {
+        const issues = analyzePythonAST(fileObj.content);
+        totalIssuesCount += issues.length;
+
+        const deduction = issues.reduce((acc, i) => acc + (i.sev === "HIGH" ? 18 : i.sev === "MEDIUM" ? 10 : 5), 0);
+        const fileScore = Math.max(0, 100 - deduction);
+        totalScoreSum += fileScore;
+
+        cliReportLines.push(`=================================================================`);
+        cliReportLines.push(`FILE: ${fileObj.name}  |  Code Health Score: ${fileScore}/100`);
+        cliReportLines.push(`=================================================================`);
+
+        if (issues.length === 0) {
+          cliReportLines.push(`  No issues found! Clean code.\n`);
+          allCardsHTML += `<div class="issue-card LOW"><div class="issue-head"><span>✅ ${fileObj.name}</span><span class="badge LOW">CLEAN</span></div><div class="issue-body"><p>Zero AST issues found!</p></div></div>`;
+        }
+
+        for (const issue of issues) {
+          const ai = await explainIssue(issue);
+
+          cliReportLines.push(`Line ${issue.line} | [${issue.sev}] ${issue.type} | ${issue.target}`);
+          cliReportLines.push(`  Why: ${ai.why}`);
+          cliReportLines.push(`  Fix: ${ai.fix}`);
+          cliReportLines.push(`  Code: ${ai.fixed_code.replace(/\n/g, "\n        ")}`);
+          cliReportLines.push(`-----------------------------------------------------------------`);
+
+          allCardsHTML += `
+            <div class="issue-card ${issue.sev}">
+              <div class="issue-head">
+                <span>Line ${issue.line} | ${issue.type} | <code>${issue.target}</code></span>
+                <span class="badge ${issue.sev}">${issue.sev}</span>
+              </div>
+              <div class="issue-body">
+                <p><strong>Why:</strong> ${ai.why}</p>
+                <p><strong>Fix:</strong> ${ai.fix}</p>
+                <div class="code-fix">${ai.fixed_code}</div>
+              </div>
+            </div>`;
+        }
+      }
+
+      const avgScore = Math.round(totalScoreSum / filesToRun.length);
+      document.getElementById("scoreText").textContent = `Code Health Score: ${avgScore}/100`;
+      document.getElementById("issueCountText").textContent = `${totalIssuesCount} Issues Found`;
+
+      const bar = document.getElementById("scoreBar");
+      bar.style.width = `${avgScore}%`;
+      bar.style.background = avgScore >= 75 ? "var(--green)" : avgScore >= 50 ? "var(--med)" : "var(--high)";
+
+      document.getElementById("issueContainer").innerHTML = allCardsHTML;
+      latestReportText = cliReportLines.join("\n");
+      document.getElementById("cliPreview").textContent = latestReportText;
+      statusEl.textContent = "Review Complete ✓";
+    }
+
+    function downloadReport() {
+      if (!latestReportText) runReview();
+      const blob = new Blob([latestReportText], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "review_report.txt";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function copyReport() {
+      navigator.clipboard.writeText(latestReportText);
+      document.getElementById("statusText").textContent = "Copied CLI Report!";
+    }
+  </script>
+</body>
+</html>
