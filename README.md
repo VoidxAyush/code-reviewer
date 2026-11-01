@@ -35,8 +35,9 @@ Standard linters throw cryptic error codes that beginners struggle to fix. **Vib
 - 🤖 **Resilient AI Explanations:** Enforces structured JSON output (`why`, `fix`, `fixed_code`) with an **instant offline fallback** so demos never fail if Wi-Fi drops.
 - 🎨 **Rich CLI + Web Companion:** Features an ANSI color-coded terminal report, ASCII Health Bar (`0–100`), folder-wide batch scanning, auto-saved `review_report.txt`, and a drag-and-drop **GitHub Pages Web UI**.
 
-HOME PAGE 
-assets/Screenshot (1).png
+## Home page
+
+![VibeCheck home page](assets/Screenshot%20(1).png)
 
 ## ⚡ Quick Start (CLI)
 
@@ -75,8 +76,6 @@ Line 2 | [HIGH] hardcoded secret | api_key
 ## 🌐 Live Web Dashboard (`index.html`)
 
 Prefer a visual interface? Open `index.html` in any browser or visit our **GitHub Pages** deployment:
-
-<p align="center"><img src="assets/Screenshot%20(1).png" alt="VibeCheck home page" width="100%"></p>
 
 1. **Drag & Drop** any judge's `.py` file or project folder.
 2. View interactive severity cards (`HIGH` / `MEDIUM` / `LOW`) and live Code Health Score.
