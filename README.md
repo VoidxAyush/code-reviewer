@@ -35,7 +35,8 @@ Standard linters throw cryptic error codes that beginners struggle to fix. **Vib
 - 🤖 **Resilient AI Explanations:** Enforces structured JSON output (`why`, `fix`, `fixed_code`) with an **instant offline fallback** so demos never fail if Wi-Fi drops.
 - 🎨 **Rich CLI + Web Companion:** Features an ANSI color-coded terminal report, ASCII Health Bar (`0–100`), folder-wide batch scanning, auto-saved `review_report.txt`, and a drag-and-drop **GitHub Pages Web UI**.
 
----
+HOME PAGE 
+assets/Screenshot (1).png
 
 ## ⚡ Quick Start (CLI)
 
