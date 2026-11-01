@@ -74,6 +74,9 @@ Line 2 | [HIGH] hardcoded secret | api_key
 ## 🌐 Live Web Dashboard (`index.html`)
 
 Prefer a visual interface? Open `index.html` in any browser or visit our **GitHub Pages** deployment:
+
+<p align="center"><img src="assets/Screenshot%20(1).png" alt="VibeCheck home page" width="100%"></p>
+
 1. **Drag & Drop** any judge's `.py` file or project folder.
 2. View interactive severity cards (`HIGH` / `MEDIUM` / `LOW`) and live Code Health Score.
 3. Click **Download `review_report.txt`** to export the full audit.
