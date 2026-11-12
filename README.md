@@ -3,6 +3,7 @@ Download The Project Documentation --> [project_documentation.md](https://github
 
 # ⚡ VibeCheck: AST + AI Code Reviewer CLI
 
+
 **A zero-dependency Python static analyzer & AI code reviewer with a Glassmorphic Web UI**
 
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
